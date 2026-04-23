@@ -1,13 +1,13 @@
-// Lista de apenas 5 perguntas
+// Lista de sugestões
 const perguntas = [
     "Qual é o seu nome?",
     "Que horas são agora?",
     "O que você sabe fazer?",
-    "Como funciona a inteligência artificial?",
-    "Me conte uma curiosidade"
+    "Olá, tudo bem?",
+    "Como funciona a inteligência artificial?"
 ];
 
-// Adicionar perguntas à tela
+// Adicionar cards na tela
 const container = document.getElementById("suggestions-container");
 perguntas.forEach(pergunta => {
     const card = document.createElement("div");
@@ -16,7 +16,7 @@ perguntas.forEach(pergunta => {
     container.appendChild(card);
 });
 
-// Botão manual para alternar dia/noite
+// Botão Dia/Noite
 const themeToggle = document.getElementById("theme-toggle");
 themeToggle.addEventListener("click", () => {
     document.body.classList.toggle("night");
