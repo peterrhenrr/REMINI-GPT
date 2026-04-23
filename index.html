@@ -8,32 +8,31 @@
 </head>
 <body class="day">
     <header>
-        <div class="logo">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Remini_Logo.svg" alt="Remini Logo">
-            REMINI GPT
+        <div class="logo-container">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Remini_Logo.svg" alt="Remini Logo" class="logo">
+            <h1>REMNI GPT</h1>
+            <p>Seu assistente inteligente</p>
         </div>
         <button class="theme-toggle" id="theme-toggle">Modo Noite</button>
     </header>
-    <div class="container">
-        <div class="sidebar">
-            <a href="#">Início</a>
-            <a href="#">Sobre</a>
-            <a href="#">Sugestões</a>
-            <a href="#">Configurações</a>
+
+    <main>
+        <div class="search-bar">
+            <input type="text" placeholder="Pergunta aqui..." id="search-input">
+            <button class="send-btn">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Send_icon.png" alt="Enviar">
+            </button>
         </div>
-        <div class="main-content">
-            <div class="search-bar">
-                <input type="text" placeholder="Pergunta aqui...">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Search_icon.png" alt="search" width="20">
-            </div>
-            <div class="suggestions" id="suggestions-container">
-                <!-- Sugestões serão inseridas pelo JS -->
-            </div>
+
+        <h2 class="suggestions-title">💡 SUGESTÕES PARA VOCÊ COMEÇAR</h2>
+        <div class="suggestions" id="suggestions-container">
+            <!-- Cards de sugestões serão inseridos pelo JS -->
         </div>
-    </div>
-    <div class="footer">
+    </main>
+
+    <footer>
         <div class="temperature">19°C - Limpo</div>
-    </div>
+    </footer>
 
     <script src="script.js"></script>
 </body>
