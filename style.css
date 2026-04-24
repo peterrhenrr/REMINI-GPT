@@ -2,90 +2,84 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f6f6f6;
+    background: #f6f6f6;
 }
 
-.container-login {
+.container-chat {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 0 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 50px auto;
-    max-width: 500px;
-    padding: 0 20px;
 }
 
 .logo-container {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .logo-container h1 {
     margin-top: 10px;
-    font-size: 2rem;
     color: #003366;
 }
 
-.login-input {
-    display: flex;
+.chat-window {
     width: 100%;
-    margin-bottom: 30px;
-    background-color: #e6f2ff;
-    border-radius: 30px;
-    padding: 10px 15px;
+    height: 400px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.login-input input {
+.message {
+    padding: 10px 15px;
+    border-radius: 15px;
+    max-width: 75%;
+    word-wrap: break-word;
+}
+
+.user-msg {
+    background: #7da7ff;
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 0;
+}
+
+.bot-msg {
+    background: #00C851;
+    color: #fff;
+    align-self: flex-start;
+    border-bottom-left-radius: 0;
+}
+
+.chat-input {
+    display: flex;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 10px 15px;
+    border-radius: 30px;
     border: none;
     outline: none;
-    flex: 1;
     font-size: 1rem;
-    background-color: transparent;
 }
 
 .send-btn {
-    border: none;
-    background-color: #7da7ff;
-    color: white;
-    font-size: 1.2rem;
-    padding: 5px 10px;
+    margin-left: 10px;
+    padding: 10px 15px;
     border-radius: 50%;
+    border: none;
+    background-color: #007E33;
+    color: #fff;
+    font-size: 1.2rem;
     cursor: pointer;
-}
-
-h2 {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.suggestions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    width: 100%;
-}
-
-.suggestion-card {
-    background-color: white;
-    padding: 10px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.suggestion-card::before {
-    content: "✨";
-}
-
-footer {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background-color: #003366;
-    color: white;
-    text-align: center;
-    padding: 10px;
 }
