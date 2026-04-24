@@ -16,10 +16,3 @@ perguntas.forEach(p => {
     card.textContent = p;
     container.appendChild(card);
 });
-
-const themeToggle = document.getElementById("theme-toggle");
-themeToggle.addEventListener("click", () => {
-    document.body.classList.toggle("night");
-    document.body.classList.toggle("day");
-    themeToggle.textContent = document.body.classList.contains("night") ? "Modo Dia" : "Modo Noite";
-});
