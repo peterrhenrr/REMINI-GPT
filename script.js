@@ -1,39 +1,45 @@
-const input = document.getElementById("chat-input");
-const sendBtn = document.querySelector(".send-btn");
-const chatWindow = document.getElementById("chat-window");
+const AZURE_ENDPOINT = "https://georg-ml7854jc-swedencentral.cognitiveservices.azure.com";
+const AZURE_API_KEY = "SUA_API_KEY";
+const API_VERSION = "2025-04-01-preview";
 
-// Função para gerar resposta da IA
-function getBotResponse(userMsg) {
-    userMsg = userMsg.toLowerCase();
-    if(userMsg.includes("nome")) return "Eu sou o REMNI-GPT, seu assistente inteligente!";
-    if(userMsg.includes("horas")) return `Agora são ${new Date().toLocaleTimeString()}`;
-    if(userMsg.includes("data")) return `Hoje é ${new Date().toLocaleDateString()}`;
-    if(userMsg.includes("oi") || userMsg.includes("olá")) return "Olá! Como posso te ajudar hoje?";
-    return "Interessante! Me conte mais ou faça outra pergunta.";
+async function enviar() {
+  const input = document.getElementById("input");
+  const chat = document.getElementById("chat");
+
+  const mensagem = input.value.trim();
+  if (!mensagem) return;
+
+  chat.innerHTML += `<div>Você: ${mensagem}</div>`;
+  input.value = "";
+
+  const url = `${AZURE_ENDPOINT}/openai/responses?api-version=${API_VERSION}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": AZURE_API_KEY
+      },
+      body: JSON.stringify({
+        model: "gpt-5.2-chat",
+        input: mensagem,
+        max_output_tokens: 1000
+      })
+    });
+
+    const data = await res.json();
+
+    console.log("Azure response:", data);
+
+    const resposta =
+      data.output?.[0]?.content?.[0]?.text ||
+      "Sem resposta";
+
+    chat.innerHTML += `<div>Bot: ${resposta}</div>`;
+
+  } catch (err) {
+    console.error(err);
+    chat.innerHTML += `<div>Erro de conexão com Azure</div>`;
+  }
 }
-
-// Função para adicionar mensagem ao chat
-function addMessage(text, sender) {
-    const msgDiv = document.createElement("div");
-    msgDiv.classList.add("message", sender === "user" ? "user-msg" : "bot-msg");
-    msgDiv.textContent = text;
-    chatWindow.appendChild(msgDiv);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-}
-
-// Evento de envio
-sendBtn.addEventListener("click", () => {
-    const msg = input.value.trim();
-    if(msg === "") return;
-    addMessage(msg, "user");
-    input.value = "";
-    setTimeout(() => {
-        const botReply = getBotResponse(msg);
-        addMessage(botReply, "bot");
-    }, 500); // atraso para parecer mais natural
-});
-
-// Enviar com Enter
-input.addEventListener("keypress", (e) => {
-    if(e.key === "Enter") sendBtn.click();
-});
