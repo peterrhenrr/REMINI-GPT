@@ -1,45 +1,159 @@
-const AZURE_ENDPOINT = "https://georg-ml7854jc-swedencentral.cognitiveservices.azure.com";
-const AZURE_API_KEY = "SUA_API_KEY";
-const API_VERSION = "2025-04-01-preview";
+let config = null;
 
+// carregar keys.json
+async function carregarConfig() {
+
+  try {
+
+    const res = await fetch("./keys.json", {
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      throw new Error("keys.json não encontrado");
+    }
+
+    config = await res.json();
+
+    console.log("CONFIG OK:", config);
+
+  } catch (err) {
+
+    console.error("Erro ao carregar keys.json:", err);
+
+    document.getElementById("chat").innerHTML += `
+      <div class="msg bot">
+        Erro ao carregar keys.json
+      </div>
+    `;
+  }
+}
+
+// inicia config
+carregarConfig();
+
+
+// função enviar
 async function enviar() {
+
   const input = document.getElementById("input");
   const chat = document.getElementById("chat");
 
   const mensagem = input.value.trim();
+
   if (!mensagem) return;
 
-  chat.innerHTML += `<div>Você: ${mensagem}</div>`;
+  // verifica config
+  if (!config) {
+
+    chat.innerHTML += `
+      <div class="msg bot">
+        Config ainda carregando...
+      </div>
+    `;
+
+    return;
+  }
+
+  // adiciona mensagem do usuário
+  chat.innerHTML += `
+    <div class="msg user">
+      Você: ${mensagem}
+    </div>
+  `;
+
+  // limpa input
   input.value = "";
 
-  const url = `${AZURE_ENDPOINT}/openai/responses?api-version=${API_VERSION}`;
+  // scroll automático
+  chat.scrollTop = chat.scrollHeight;
+
+  // URL Azure
+  const url =
+    `${config.endpoint}/openai/responses?api-version=${config.apiVersion}`;
 
   try {
+
     const res = await fetch(url, {
       method: "POST",
+
       headers: {
         "Content-Type": "application/json",
-        "api-key": AZURE_API_KEY
+        "api-key": config.apiKey
       },
+
       body: JSON.stringify({
-        model: "gpt-5.2-chat",
+        model: config.model,
         input: mensagem,
-        max_output_tokens: 1000
+        max_output_tokens: 500
       })
     });
 
     const data = await res.json();
 
-    console.log("Azure response:", data);
+    // debug
+    console.log("AZURE RESPONSE:");
+    console.log(JSON.stringify(data, null, 2));
 
-    const resposta =
-      data.output?.[0]?.content?.[0]?.text ||
-      "Sem resposta";
+    let resposta = "Sem resposta";
 
-    chat.innerHTML += `<div>Bot: ${resposta}</div>`;
+    // NOVA RESPONSES API
+    if (data.output && data.output.length > 0) {
+
+      for (const item of data.output) {
+
+        // procura mensagem do assistant
+        if (
+          item.type === "message" &&
+          item.content &&
+          item.content.length > 0
+        ) {
+
+          for (const content of item.content) {
+
+            // texto encontrado
+            if (
+              content.type === "output_text" &&
+              content.text
+            ) {
+
+              resposta = content.text;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // fallback antigo
+    else if (
+      data.choices &&
+      data.choices.length > 0
+    ) {
+
+      resposta =
+        data.choices[0]?.message?.content ||
+        "Sem resposta";
+    }
+
+    // resposta do bot
+    chat.innerHTML += `
+      <div class="msg bot">
+        Bot: ${resposta}
+      </div>
+    `;
+
+    // scroll automático
+    chat.scrollTop = chat.scrollHeight;
 
   } catch (err) {
-    console.error(err);
-    chat.innerHTML += `<div>Erro de conexão com Azure</div>`;
+
+    console.error("ERRO:", err);
+
+    chat.innerHTML += `
+      <div class="msg bot">
+        Erro de conexão com Azure
+      </div>
+    `;
   }
 }
