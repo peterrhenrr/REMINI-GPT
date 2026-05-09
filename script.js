@@ -1,4 +1,19 @@
-let config = null;
+ let config = null;
+
+// =====================================
+// CONTROLE
+// =====================================
+
+let enviando = false;
+
+let audioAtual = null;
+
+let reconhecimento = null;
+
+let gravando = false;
+
+let ouvindoMsg = null;
+
 
 // =====================================
 // CONFIG
@@ -8,9 +23,12 @@ async function carregarConfig() {
 
   try {
 
-    const res = await fetch("./keys.json", {
-      cache: "no-store"
-    });
+    const res = await fetch(
+      "./keys.json",
+      {
+        cache: "no-store"
+      }
+    );
 
     if (!res.ok) {
 
@@ -24,6 +42,11 @@ async function carregarConfig() {
     console.log(
       "CONFIG:",
       config
+    );
+
+    adicionarMensagem(
+      "Remini GPT online 🚀",
+      "bot"
     );
 
   } catch (err) {
@@ -96,19 +119,10 @@ document.addEventListener(
 
 
 // =====================================
-// CONTROLE
-// =====================================
-
-let enviando = false;
-
-
-// =====================================
 // ENVIAR
 // =====================================
 
 async function enviar() {
-
-  // evita travar enviando duas vezes
 
   if (enviando) return;
 
@@ -159,7 +173,9 @@ async function enviar() {
     );
 
   const ultimoLoading =
-    loading[loading.length - 1];
+    loading[
+      loading.length - 1
+    ];
 
   let resposta =
     "Sem resposta";
@@ -167,13 +183,15 @@ async function enviar() {
   try {
 
     // =================================
-    // AZURE GPT
+    // CHATGPT / AZURE
     // =================================
 
-    if (provider === "azure") {
+    if (
+      provider === "azure"
+    ) {
 
       const url =
-        `${config.azure.endpoint}/openai/responses?api-version=${config.azure.apiVersion}`;
+`${config.azure.endpoint}/openai/responses?api-version=${config.azure.apiVersion}`;
 
       const res =
         await fetch(url, {
@@ -195,20 +213,16 @@ async function enviar() {
               config.azure.model,
 
             instructions: `
-Você é um assistente inteligente chamado Remini GPT.
+Você é Remini GPT.
 
 Regras:
-- Responda sempre em português do Brasil
+- Responda em português do Brasil
+- Seja rápido
 - Seja amigável
-- Seja rápido e objetivo
-- Entenda erros de fala do usuário
 - Converse naturalmente
-- Responda como um humano
-- Você conversa por voz e texto
-- Nunca diga que é uma IA
-- Responda curto quando o usuário usar voz
-- Corrija automaticamente frases faladas erradas
-- Se o áudio vier confuso tente entender pelo contexto
+- Entenda erros de fala
+- Nunca diga que é IA
+- Responda curto quando for voz
 `,
 
             input:
@@ -227,15 +241,12 @@ Regras:
         data
       );
 
-      // Responses API
-
       if (data.output) {
 
         for (const item of data.output) {
 
           if (
-            item.type === "message" &&
-            item.content
+            item.type === "message"
           ) {
 
             for (const content of item.content) {
@@ -252,21 +263,9 @@ Regras:
         }
       }
 
-      // fallback
-
       if (
-        data.choices &&
-        data.choices.length > 0
+        data.error
       ) {
-
-        resposta =
-          data.choices[0]
-          ?.message
-          ?.content ||
-          resposta;
-      }
-
-      if (data.error) {
 
         resposta =
           "Erro Azure: " +
@@ -283,7 +282,7 @@ Regras:
     ) {
 
       const url =
-        `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.model}:generateContent?key=${config.gemini.apiKey}`;
+`https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.model}:generateContent?key=${config.gemini.apiKey}`;
 
       const res =
         await fetch(url, {
@@ -303,20 +302,16 @@ Regras:
               parts: [
                 {
                   text: `
-Você é um assistente inteligente chamado Remini GPT.
+Você é Remini GPT.
 
 Regras:
-- Responda sempre em português do Brasil
+- Responda em português do Brasil
+- Seja rápido
 - Seja amigável
-- Seja rápido e objetivo
-- Entenda erros de fala do usuário
 - Converse naturalmente
-- Responda como um humano
-- Você conversa por voz e texto
-- Nunca diga que é uma IA
-- Responda curto quando o usuário usar voz
-- Corrija automaticamente frases faladas erradas
-- Se o áudio vier confuso tente entender pelo contexto
+- Entenda erros de fala
+- Nunca diga que é IA
+- Responda curto quando for voz
 `
                 }
               ]
@@ -339,7 +334,6 @@ Regras:
 
               maxOutputTokens: 500
             }
-
           })
         });
 
@@ -364,7 +358,9 @@ Regras:
           resposta;
       }
 
-      if (data.error) {
+      if (
+        data.error
+      ) {
 
         resposta =
           "Erro Gemini: " +
@@ -372,9 +368,11 @@ Regras:
       }
     }
 
-    // remove loading
+    // REMOVE LOADING
 
-    if (ultimoLoading) {
+    if (
+      ultimoLoading
+    ) {
 
       ultimoLoading.remove();
     }
@@ -384,7 +382,7 @@ Regras:
       "bot"
     );
 
-    // falar resposta
+    // FALAR
 
     await falarTexto(
       resposta
@@ -394,7 +392,9 @@ Regras:
 
     console.error(err);
 
-    if (ultimoLoading) {
+    if (
+      ultimoLoading
+    ) {
 
       ultimoLoading.remove();
     }
@@ -416,10 +416,8 @@ Regras:
 
 
 // =====================================
-// BOT FALANDO
+// VOZ
 // =====================================
-
-let audioAtual = null;
 
 async function falarTexto(
   texto
@@ -427,18 +425,88 @@ async function falarTexto(
 
   try {
 
+    const provider =
+      document.getElementById(
+        "provider"
+      ).value;
+
+    // =================================
+    // GEMINI = VOZ NATIVA
+    // =================================
+
     if (
-      !config.azureSpeech
-    ) return;
+      provider === "gemini"
+    ) {
 
-    if (audioAtual) {
+      window.speechSynthesis.cancel();
 
-      audioAtual.pause();
+      const fala =
+        new SpeechSynthesisUtterance(
+          texto
+        );
 
-      audioAtual = null;
+      fala.lang =
+        "pt-BR";
+
+      fala.rate =
+        1;
+
+      fala.pitch =
+        1;
+
+      const vozes =
+        window.speechSynthesis.getVoices();
+
+      let vozBR =
+        vozes.find(
+          v =>
+            v.lang === "pt-BR"
+        );
+
+      if (!vozBR) {
+
+        vozBR =
+          vozes.find(
+            v =>
+              v.lang.includes(
+                "pt"
+              )
+          );
+      }
+
+      if (vozBR) {
+
+        fala.voice =
+          vozBR;
+      }
+
+      window.speechSynthesis.speak(
+        fala
+      );
+
+      return;
     }
 
-    const ssml = `
+    // =================================
+    // AZURE VOICE
+    // =================================
+
+    if (
+      provider === "azure"
+    ) {
+
+      if (
+        !config.azureSpeech
+      ) return;
+
+      if (audioAtual) {
+
+        audioAtual.pause();
+
+        audioAtual = null;
+      }
+
+      const ssml = `
 <speak version='1.0' xml:lang='pt-BR'>
   <voice name='${config.azureSpeech.voice}'>
     ${texto}
@@ -446,53 +514,56 @@ async function falarTexto(
 </speak>
 `;
 
-    const res =
-      await fetch(
-        config.azureSpeech.endpoint,
-        {
+      const res =
+        await fetch(
+          config.azureSpeech.endpoint,
+          {
 
-          method: "POST",
+            method: "POST",
 
-          headers: {
+            headers: {
 
-            "Ocp-Apim-Subscription-Key":
-              config.azureSpeech.apiKey,
+"Ocp-Apim-Subscription-Key":
+config.azureSpeech.apiKey,
 
-            "Content-Type":
-              "application/ssml+xml",
+              "Content-Type":
+                "application/ssml+xml",
 
-            "X-Microsoft-OutputFormat":
-              config.azureSpeech.audioFormat
-          },
+"X-Microsoft-OutputFormat":
+config.azureSpeech.audioFormat
+            },
 
-          body: ssml
-        }
-      );
+            body: ssml
+          }
+        );
 
-    if (!res.ok) {
+      if (!res.ok) {
 
-      throw new Error(
-        "Erro ao gerar voz"
-      );
+        throw new Error(
+          "Erro voz Azure"
+        );
+      }
+
+      const blob =
+        await res.blob();
+
+      const audioUrl =
+        URL.createObjectURL(
+          blob
+        );
+
+      audioAtual =
+        new Audio(
+          audioUrl
+        );
+
+      await audioAtual.play();
     }
-
-    const audioBlob =
-      await res.blob();
-
-    const audioUrl =
-      URL.createObjectURL(
-        audioBlob
-      );
-
-    audioAtual =
-      new Audio(audioUrl);
-
-    await audioAtual.play();
 
   } catch (err) {
 
     console.error(
-      "Erro TTS:",
+      "Erro voz:",
       err
     );
   }
@@ -500,12 +571,8 @@ async function falarTexto(
 
 
 // =====================================
-// MICROFONE REALTIME
+// MICROFONE
 // =====================================
-
-let reconhecimento;
-let gravando = false;
-let ouvindoMsg = null;
 
 function removerOuvindo() {
 
@@ -527,14 +594,15 @@ function gravarAudio() {
       "btnMic"
     );
 
-  // sem suporte
+  // =================================
+  // SUPORTE
+  // =================================
 
-  if (
-    !(
-      "webkitSpeechRecognition"
-      in window
-    )
-  ) {
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
 
     adicionarMensagem(
       "Seu navegador não suporta voz",
@@ -545,10 +613,12 @@ function gravarAudio() {
   }
 
   // =================================
-  // PARAR MANUALMENTE
+  // PARAR E ENVIAR
   // =================================
 
   if (gravando) {
+
+    gravando = false;
 
     reconhecimento.stop();
 
@@ -560,12 +630,10 @@ function gravarAudio() {
   // =================================
 
   reconhecimento =
-    new webkitSpeechRecognition();
+    new SpeechRecognition();
 
   reconhecimento.lang =
     "pt-BR";
-
-  // continua ouvindo
 
   reconhecimento.continuous =
     true;
@@ -575,7 +643,7 @@ function gravarAudio() {
 
   gravando = true;
 
-  // botão vermelho
+  // BOTÃO
 
   botao.classList.remove(
     "mic-off"
@@ -588,7 +656,7 @@ function gravarAudio() {
   botao.innerHTML =
     "⏹";
 
-  // mensagem ouvindo
+  // MENSAGEM OUVINDO
 
   const chat =
     document.getElementById(
@@ -620,7 +688,7 @@ function gravarAudio() {
   // =================================
 
   reconhecimento.onresult =
-    function(event) {
+    async function(event) {
 
       let textoFinal = "";
 
@@ -635,55 +703,101 @@ function gravarAudio() {
           .transcript;
       }
 
-      console.log(
-        "TEXTO:",
-        textoFinal
-      );
+      textoFinal =
+        textoFinal.trim();
 
       document.getElementById(
         "input"
       ).value =
         textoFinal;
+
+      // =================================
+      // ATIVAÇÃO POR NOME
+      // =================================
+
+      const textoLower =
+        textoFinal.toLowerCase();
+
+      const ativadores = [
+
+        "remini",
+        "remini gpt",
+        "oi remini",
+        "olá remini",
+        "hey remini"
+      ];
+
+      const chamou =
+        ativadores.some(
+          nome =>
+            textoLower.includes(
+              nome
+            )
+        );
+
+      // RESPONDE AUTOMÁTICO
+
+      if (
+        chamou &&
+        !enviando
+      ) {
+
+        gravando = false;
+
+        reconhecimento.stop();
+
+        removerOuvindo();
+
+        botao.classList.remove(
+          "mic-on"
+        );
+
+        botao.classList.add(
+          "mic-off"
+        );
+
+        botao.innerHTML =
+          "🎤";
+
+        await enviar();
+      }
     };
 
   // =================================
-  // TERMINOU
+  // FINALIZOU
   // =================================
 
   reconhecimento.onend =
     async function() {
 
-      // impede bug do botão
+      if (
+        gravando
+      ) {
 
-      if (!gravando) return;
+        gravando = false;
 
-      gravando = false;
+        removerOuvindo();
 
-      // botão normal
+        botao.classList.remove(
+          "mic-on"
+        );
 
-      botao.classList.remove(
-        "mic-on"
-      );
+        botao.classList.add(
+          "mic-off"
+        );
 
-      botao.classList.add(
-        "mic-off"
-      );
+        botao.innerHTML =
+          "🎤";
 
-      botao.innerHTML =
-        "🎤";
+        const texto =
+          document.getElementById(
+            "input"
+          ).value.trim();
 
-      removerOuvindo();
+        if (texto) {
 
-      // envia texto final
-
-      const texto =
-        document.getElementById(
-          "input"
-        ).value.trim();
-
-      if (texto) {
-
-        await enviar();
+          await enviar();
+        }
       }
     };
 
@@ -698,6 +812,8 @@ function gravarAudio() {
 
       gravando = false;
 
+      removerOuvindo();
+
       botao.classList.remove(
         "mic-on"
       );
@@ -708,8 +824,6 @@ function gravarAudio() {
 
       botao.innerHTML =
         "🎤";
-
-      removerOuvindo();
 
       adicionarMensagem(
         "Erro no microfone",
