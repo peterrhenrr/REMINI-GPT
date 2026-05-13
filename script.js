@@ -1,4 +1,4 @@
- let config = null;
+let config = null;
 
 // =====================================
 // CONTROLE
@@ -11,8 +11,6 @@ let audioAtual = null;
 let reconhecimento = null;
 
 let gravando = false;
-
-let ouvindoMsg = null;
 
 
 // =====================================
@@ -183,36 +181,38 @@ async function enviar() {
   try {
 
     // =================================
-    // CHATGPT / AZURE
+    // AZURE
     // =================================
 
     if (
       provider === "azure"
     ) {
 
-      const url =
+      try {
+
+        const url =
 `${config.azure.endpoint}/openai/responses?api-version=${config.azure.apiVersion}`;
 
-      const res =
-        await fetch(url, {
+        const res =
+          await fetch(url, {
 
-          method: "POST",
+            method: "POST",
 
-          headers: {
+            headers: {
 
-            "Content-Type":
-              "application/json",
+              "Content-Type":
+                "application/json",
 
-            "api-key":
-              config.azure.apiKey
-          },
+              "api-key":
+                config.azure.apiKey
+            },
 
-          body: JSON.stringify({
+            body: JSON.stringify({
 
-            model:
-              config.azure.model,
+              model:
+                config.azure.model,
 
-            instructions: `
+              instructions: `
 Você é Remini GPT.
 
 Regras:
@@ -220,56 +220,83 @@ Regras:
 - Seja rápido
 - Seja amigável
 - Converse naturalmente
-- Entenda erros de fala
 - Nunca diga que é IA
-- Responda curto quando for voz
 `,
 
-            input:
-              mensagem,
+              input:
+                mensagem,
 
-            max_output_tokens:
-              500
-          })
-        });
+              max_output_tokens:
+                500
+            })
+          });
 
-      const data =
-        await res.json();
+        if (!res.ok) {
 
-      console.log(
-        "AZURE:",
-        data
-      );
+          const erroTexto =
+            await res.text();
 
-      if (data.output) {
+          console.log(
+            "ERRO AZURE:",
+            erroTexto
+          );
 
-        for (const item of data.output) {
+          resposta =
+            "Erro Azure (" +
+            res.status +
+            ")";
 
-          if (
-            item.type === "message"
-          ) {
+        } else {
 
-            for (const content of item.content) {
+          const data =
+            await res.json();
+
+          console.log(
+            "AZURE:",
+            data
+          );
+
+          if (data.output) {
+
+            for (const item of data.output) {
 
               if (
-                content.type === "output_text"
+                item.type === "message"
               ) {
 
-                resposta =
-                  content.text;
+                for (const content of item.content) {
+
+                  if (
+                    content.type === "output_text"
+                  ) {
+
+                    resposta =
+                      content.text;
+                  }
+                }
               }
             }
           }
-        }
-      }
 
-      if (
-        data.error
-      ) {
+          if (
+            data.error
+          ) {
+
+            resposta =
+              "Erro Azure: " +
+              data.error.message;
+          }
+        }
+
+      } catch (err) {
+
+        console.error(
+          "ERRO AZURE:",
+          err
+        );
 
         resposta =
-          "Erro Azure: " +
-          data.error.message;
+          "Erro de conexão Azure.";
       }
     }
 
@@ -281,27 +308,29 @@ Regras:
       provider === "gemini"
     ) {
 
-      const url =
+      try {
+
+        const url =
 `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.model}:generateContent?key=${config.gemini.apiKey}`;
 
-      const res =
-        await fetch(url, {
+        const res =
+          await fetch(url, {
 
-          method: "POST",
+            method: "POST",
 
-          headers: {
+            headers: {
 
-            "Content-Type":
-              "application/json"
-          },
+              "Content-Type":
+                "application/json"
+            },
 
-          body: JSON.stringify({
+            body: JSON.stringify({
 
-            systemInstruction: {
+              systemInstruction: {
 
-              parts: [
-                {
-                  text: `
+                parts: [
+                  {
+                    text: `
 Você é Remini GPT.
 
 Regras:
@@ -309,66 +338,116 @@ Regras:
 - Seja rápido
 - Seja amigável
 - Converse naturalmente
-- Entenda erros de fala
 - Nunca diga que é IA
-- Responda curto quando for voz
 `
-                }
-              ]
-            },
-
-            contents: [
-              {
-                parts: [
-                  {
-                    text:
-                      mensagem
                   }
                 ]
+              },
+
+              contents: [
+                {
+                  parts: [
+                    {
+                      text:
+                        mensagem
+                    }
+                  ]
+                }
+              ],
+
+              generationConfig: {
+
+                temperature: 0.7,
+
+                maxOutputTokens: 500
               }
-            ],
+            })
+          });
 
-            generationConfig: {
+        if (!res.ok) {
 
-              temperature: 0.7,
+          const erroTexto =
+            await res.text();
 
-              maxOutputTokens: 500
-            }
-          })
-        });
+          console.log(
+            "ERRO GEMINI:",
+            erroTexto
+          );
 
-      const data =
-        await res.json();
+          if (
+            res.status === 503
+          ) {
 
-      console.log(
-        "GEMINI:",
-        data
-      );
+            resposta =
+              "Gemini sobrecarregado. Tente novamente.";
 
-      if (
-        data.candidates &&
-        data.candidates.length > 0
-      ) {
+          } else if (
+            res.status === 429
+          ) {
+
+            resposta =
+              "Muitas requisições no Gemini.";
+
+          } else if (
+            res.status === 401
+          ) {
+
+            resposta =
+              "API KEY Gemini inválida.";
+
+          } else {
+
+            resposta =
+              "Erro Gemini (" +
+              res.status +
+              ")";
+          }
+
+        } else {
+
+          const data =
+            await res.json();
+
+          console.log(
+            "GEMINI:",
+            data
+          );
+
+          if (
+            data.candidates &&
+            data.candidates.length > 0
+          ) {
+
+            resposta =
+              data.candidates?.[0]
+              ?.content
+              ?.parts?.[0]
+              ?.text ||
+              "Sem resposta";
+          }
+
+          else {
+
+            resposta =
+              "Gemini não retornou resposta.";
+          }
+        }
+
+      } catch (err) {
+
+        console.error(
+          "ERRO GEMINI:",
+          err
+        );
 
         resposta =
-          data.candidates[0]
-          ?.content
-          ?.parts?.[0]
-          ?.text ||
-          resposta;
-      }
-
-      if (
-        data.error
-      ) {
-
-        resposta =
-          "Erro Gemini: " +
-          data.error.message;
+          "Erro de conexão com Gemini.";
       }
     }
 
+    // =================================
     // REMOVE LOADING
+    // =================================
 
     if (
       ultimoLoading
@@ -382,7 +461,9 @@ Regras:
       "bot"
     );
 
+    // =================================
     // FALAR
+    // =================================
 
     await falarTexto(
       resposta
@@ -431,7 +512,7 @@ async function falarTexto(
       ).value;
 
     // =================================
-    // GEMINI = VOZ NATIVA
+    // GEMINI VOZ
     // =================================
 
     if (
@@ -523,14 +604,14 @@ async function falarTexto(
 
             headers: {
 
-"Ocp-Apim-Subscription-Key":
-config.azureSpeech.apiKey,
+              "Ocp-Apim-Subscription-Key":
+                config.azureSpeech.apiKey,
 
               "Content-Type":
                 "application/ssml+xml",
 
-"X-Microsoft-OutputFormat":
-config.azureSpeech.audioFormat
+              "X-Microsoft-OutputFormat":
+                config.azureSpeech.audioFormat
             },
 
             body: ssml
@@ -571,21 +652,10 @@ config.azureSpeech.audioFormat
 
 
 // =====================================
-// MICROFONE
+// MICROFONE MANUAL
+// APERTA PARA COMEÇAR
+// APERTA NOVAMENTE PARA PARAR
 // =====================================
-
-function removerOuvindo() {
-
-  if (
-    ouvindoMsg &&
-    ouvindoMsg.parentNode
-  ) {
-
-    ouvindoMsg.remove();
-
-    ouvindoMsg = null;
-  }
-}
 
 function gravarAudio() {
 
@@ -594,13 +664,18 @@ function gravarAudio() {
       "btnMic"
     );
 
-  // =================================
-  // SUPORTE
-  // =================================
+  const input =
+    document.getElementById(
+      "input"
+    );
 
   const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
+
+  // =====================================
+  // SUPORTE
+  // =====================================
 
   if (!SpeechRecognition) {
 
@@ -612,22 +687,36 @@ function gravarAudio() {
     return;
   }
 
-  // =================================
-  // PARAR E ENVIAR
-  // =================================
+  // =====================================
+  // PARAR
+  // =====================================
 
-  if (gravando) {
+  if (
+    gravando &&
+    reconhecimento
+  ) {
 
     gravando = false;
 
     reconhecimento.stop();
 
+    botao.classList.remove(
+      "mic-on"
+    );
+
+    botao.classList.add(
+      "mic-off"
+    );
+
+    botao.innerHTML =
+      "🎤";
+
     return;
   }
 
-  // =================================
-  // INICIAR
-  // =================================
+  // =====================================
+  // NOVA GRAVAÇÃO
+  // =====================================
 
   reconhecimento =
     new SpeechRecognition();
@@ -641,9 +730,14 @@ function gravarAudio() {
   reconhecimento.interimResults =
     true;
 
+  reconhecimento.maxAlternatives =
+    1;
+
   gravando = true;
 
+  // =====================================
   // BOTÃO
+  // =====================================
 
   botao.classList.remove(
     "mic-off"
@@ -656,163 +750,44 @@ function gravarAudio() {
   botao.innerHTML =
     "⏹";
 
-  // MENSAGEM OUVINDO
-
-  const chat =
-    document.getElementById(
-      "chat"
-    );
-
-  ouvindoMsg =
-    document.createElement(
-      "div"
-    );
-
-  ouvindoMsg.className =
-    "msg bot";
-
-  ouvindoMsg.innerHTML =
-    "🎙️ Ouvindo...";
-
-  chat.appendChild(
-    ouvindoMsg
-  );
-
-  chat.scrollTop =
-    chat.scrollHeight;
+  // =====================================
+  // INICIA
+  // =====================================
 
   reconhecimento.start();
 
-  // =================================
+  // =====================================
   // RESULTADO
-  // =================================
+  // =====================================
 
   reconhecimento.onresult =
-    async function(event) {
+    function(event) {
 
       let textoFinal = "";
 
       for (
-        let i = event.resultIndex;
+        let i = 0;
         i < event.results.length;
         i++
       ) {
 
         textoFinal +=
           event.results[i][0]
-          .transcript;
+          .transcript + " ";
       }
 
-      textoFinal =
+      input.value =
         textoFinal.trim();
-
-      document.getElementById(
-        "input"
-      ).value =
-        textoFinal;
-
-      // =================================
-      // ATIVAÇÃO POR NOME
-      // =================================
-
-      const textoLower =
-        textoFinal.toLowerCase();
-
-      const ativadores = [
-
-        "remini",
-        "remini gpt",
-        "oi remini",
-        "olá remini",
-        "hey remini"
-      ];
-
-      const chamou =
-        ativadores.some(
-          nome =>
-            textoLower.includes(
-              nome
-            )
-        );
-
-      // RESPONDE AUTOMÁTICO
-
-      if (
-        chamou &&
-        !enviando
-      ) {
-
-        gravando = false;
-
-        reconhecimento.stop();
-
-        removerOuvindo();
-
-        botao.classList.remove(
-          "mic-on"
-        );
-
-        botao.classList.add(
-          "mic-off"
-        );
-
-        botao.innerHTML =
-          "🎤";
-
-        await enviar();
-      }
     };
 
-  // =================================
-  // FINALIZOU
-  // =================================
+  // =====================================
+  // QUANDO PARAR
+  // =====================================
 
   reconhecimento.onend =
     async function() {
 
-      if (
-        gravando
-      ) {
-
-        gravando = false;
-
-        removerOuvindo();
-
-        botao.classList.remove(
-          "mic-on"
-        );
-
-        botao.classList.add(
-          "mic-off"
-        );
-
-        botao.innerHTML =
-          "🎤";
-
-        const texto =
-          document.getElementById(
-            "input"
-          ).value.trim();
-
-        if (texto) {
-
-          await enviar();
-        }
-      }
-    };
-
-  // =================================
-  // ERRO
-  // =================================
-
-  reconhecimento.onerror =
-    function(event) {
-
-      console.log(event);
-
-      gravando = false;
-
-      removerOuvindo();
+      if (gravando) return;
 
       botao.classList.remove(
         "mic-on"
@@ -824,6 +799,47 @@ function gravarAudio() {
 
       botao.innerHTML =
         "🎤";
+
+      const texto =
+        input.value.trim();
+
+      if (
+        texto &&
+        !enviando
+      ) {
+
+        await enviar();
+      }
+    };
+
+  // =====================================
+  // ERRO
+  // =====================================
+
+  reconhecimento.onerror =
+    function(event) {
+
+      console.log(
+        "ERRO MICROFONE:",
+        event
+      );
+
+      gravando = false;
+
+      botao.classList.remove(
+        "mic-on"
+      );
+
+      botao.classList.add(
+        "mic-off"
+      );
+
+      botao.innerHTML =
+        "🎤";
+
+      if (
+        event.error === "aborted"
+      ) return;
 
       adicionarMensagem(
         "Erro no microfone",
